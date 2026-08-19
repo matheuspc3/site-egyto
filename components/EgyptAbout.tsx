@@ -1,10 +1,46 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useRef } from "react";
 import { siteData } from "@/data/dadosSite";
 import { cn } from "@/lib/utils";
 import Logo from "./Logo";
 
 export default function EgyptAbout() {
   const { about } = siteData;
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const slide = (dir: 1 | -1) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
+  };
+
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopAutoplay = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const startAutoplay = () => {
+    if (timerRef.current) return;
+    timerRef.current = setInterval(() => {
+      const el = trackRef.current;
+      if (!el) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft >= max - 4) el.scrollTo({ left: 0, behavior: "smooth" });
+      else el.scrollBy({ left: el.clientWidth, behavior: "smooth" });
+    }, 4000);
+  };
+
+  // autoplay: avança a cada 4s e volta ao início ao chegar no fim
+  useEffect(() => {
+    startAutoplay();
+    return stopAutoplay;
+  }, []);
 
   return (
     <section id="sobre" className="bg-egypt-white px-5 py-24 text-egypt-black sm:px-8">
@@ -31,22 +67,49 @@ export default function EgyptAbout() {
           </div>
         </div>
 
-        {/* strip editorial de branding */}
-        <div className="mt-16 grid grid-cols-2 gap-4 sm:gap-6">
-          {about.images.map((img, i) => (
-            <figure
-              key={img.src}
-              className={cn("overflow-hidden", i % 2 === 1 && "mt-10 sm:mt-16")}
+        {/* carrossel editorial */}
+        <div className="mt-16">
+          <div
+            ref={trackRef}
+            onMouseEnter={stopAutoplay}
+            onMouseLeave={startAutoplay}
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 sm:gap-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {about.images.map((img) => (
+              <figure
+                key={img.src}
+                className="w-[82%] shrink-0 snap-start overflow-hidden sm:w-[58%] md:w-[44%]"
+              >
+                <Image
+                  src={img.src}
+                  alt={img.alt}
+                  width={900}
+                  height={1200}
+                  className="aspect-[3/4] w-full object-cover"
+                />
+              </figure>
+            ))}
+          </div>
+
+          <div className="mt-6 flex items-center gap-2">
+            <button
+              onClick={() => slide(-1)}
+              aria-label="Imagem anterior"
+              className="flex h-10 w-10 items-center justify-center border border-egypt-black/20 font-display text-lg text-egypt-black transition-colors hover:border-egypt-orange hover:text-egypt-orange"
             >
-              <Image
-                src={img.src}
-                alt={img.alt}
-                width={900}
-                height={1200}
-                className="aspect-[3/4] w-full object-cover"
-              />
-            </figure>
-          ))}
+              ←
+            </button>
+            <button
+              onClick={() => slide(1)}
+              aria-label="Imagem seguinte"
+              className="flex h-10 w-10 items-center justify-center border border-egypt-black/20 font-display text-lg text-egypt-black transition-colors hover:border-egypt-orange hover:text-egypt-orange"
+            >
+              →
+            </button>
+            <span className="ml-2 text-[0.6rem] font-medium uppercase tracking-[0.3em] text-egypt-black/40">
+              Estúdio
+            </span>
+          </div>
         </div>
       </div>
     </section>

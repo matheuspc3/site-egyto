@@ -14,8 +14,6 @@ import { siteData, type ScrollScene } from "@/data/dadosSite";
 import { cn } from "@/lib/utils";
 import Logo from "./Logo";
 
-const SEEK_STEP_MS = 30; // cadência mínima entre seeks (evita rate-limit do Chrome)
-
 /* ------------------------------------------------------------------ */
 /* SceneLine — usa hooks estáveis por cena (não pode viver em um map)  */
 /* ------------------------------------------------------------------ */
@@ -27,24 +25,65 @@ type SceneLineProps = {
 
 function SceneLine({ scene, progress }: SceneLineProps) {
   const { start, end, fade = 0.04 } = scene;
-  const opacity = useTransform(progress, [start - fade, start, end, end + fade], [0, 1, 1, 0]);
-  const y = useTransform(progress, [start, end], [20, -20]);
 
-  const tone = scene.tone === "dark" ? "text-egypt-black" : "text-egypt-white";
+  let opacity: MotionValue<number>;
+
+  if (start === 0) {
+    opacity = useTransform(
+      progress,
+      [0, Math.min(1, start + fade), end, Math.min(1, end + fade)],
+      [0, 1, 1, 0]
+    );
+  } else if (end === 1) {
+    opacity = useTransform(
+      progress,
+      [Math.max(0, start - fade), start, end],
+      [0, 1, 1]
+    );
+  } else {
+    opacity = useTransform(
+      progress,
+      [
+        Math.max(0, start - fade),
+        start,
+        end,
+        Math.min(1, end + fade),
+      ],
+      [0, 1, 1, 0]
+    );
+  }
+
+  const y = useTransform(
+    progress,
+    [start, end],
+    [20, -20]
+  );
+
+  const tone =
+    scene.tone === "dark"
+      ? "text-egypt-black"
+      : "text-egypt-white";
+
   const size =
     scene.size === "xl"
       ? "text-6xl sm:text-8xl lg:text-9xl"
       : scene.size === "xs"
         ? "text-2xl sm:text-3xl"
         : "text-4xl sm:text-6xl";
+
   const align =
     scene.align === "center"
       ? "items-center text-center"
       : scene.align === "right"
         ? "items-end text-right"
         : "items-start text-left";
+
   const vpos =
-    scene.vpos === "top" ? "justify-start" : scene.vpos === "bottom" ? "justify-end" : "justify-center";
+    scene.vpos === "top"
+      ? "justify-start"
+      : scene.vpos === "bottom"
+        ? "justify-end"
+        : "justify-center";
 
   return (
     <motion.div
@@ -55,16 +94,25 @@ function SceneLine({ scene, progress }: SceneLineProps) {
         align,
       )}
     >
-      <div className={cn("font-display uppercase leading-[0.95] tracking-tight", tone, size)}>
+      <div
+        className={cn(
+          "font-display uppercase leading-[0.95] tracking-tight",
+          tone,
+          size,
+        )}
+      >
         {scene.lines.map((line) => (
           <div key={line}>{line}</div>
         ))}
       </div>
+
       {scene.tagline && (
         <p
           className={cn(
             "mt-4 max-w-md text-[0.65rem] font-medium uppercase tracking-[0.3em]",
-            tone === "dark" ? "text-egypt-black/80" : "text-egypt-white/70",
+            scene.tone === "dark"
+              ? "text-egypt-black/80"
+              : "text-egypt-white/70",
           )}
         >
           {scene.tagline}
@@ -74,6 +122,7 @@ function SceneLine({ scene, progress }: SceneLineProps) {
   );
 }
 
+  // resto continua igual...
 /* ------------------------------------------------------------------ */
 /* Componente principal                                                */
 /* ------------------------------------------------------------------ */
@@ -87,9 +136,8 @@ export default function EgyptScrollFilm() {
   const [loading, setLoading] = useState(true);
 
   const canScrub = useRef(false);
-  const pending = useRef(0);
-  const lastSeek = useRef(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const targetTimeRef = useRef(0);
 
   const staticMode = !!reduced || error;
 
@@ -105,32 +153,36 @@ export default function EgyptScrollFilm() {
   // barra de progresso
   const progressScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
-  const flushSeek = () => {
-    timer.current = null;
-    const v = videoRef.current;
-    if (!v) return;
-    v.currentTime = pending.current;
-    lastSeek.current = performance.now();
-  };
-
-  const scheduleSeek = (time: number) => {
-    pending.current = time;
-    if (timer.current) return; // já agendado — o flush pega o valor mais recente
-    const delay = Math.max(0, SEEK_STEP_MS - (performance.now() - lastSeek.current));
-    timer.current = setTimeout(flushSeek, delay);
-  };
-
-  useMotionValueEvent(scrollYProgress, "change", (v) => {
+  useMotionValueEvent(scrollYProgress, "change", (progress) => {
     if (!canScrub.current) return;
-    const dur = videoRef.current?.duration ?? 0;
-    if (!dur || Number.isNaN(dur)) return;
-    scheduleSeek(v * dur);
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const duration = video.duration;
+
+    if (!duration || Number.isNaN(duration)) return;
+
+    targetTimeRef.current = progress * duration;
+
+    if (rafRef.current !== null) return;
+
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+
+      const video = videoRef.current;
+      if (!video) return;
+
+      video.currentTime = targetTimeRef.current;
+    });
   });
 
-  // cleanup dos timers
+  // cleanup do rAF pendente
   useEffect(() => {
     return () => {
-      if (timer.current) clearTimeout(timer.current);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
     };
   }, []);
 
@@ -141,15 +193,34 @@ export default function EgyptScrollFilm() {
     return () => clearTimeout(t);
   }, [staticMode]);
 
-  const onLoadedMetadata = () => {
+  // `loadedmetadata`/`loadeddata` disparam antes do React anexar handlers (race com
+  // preload="auto" + vídeo local rápido), então a inicialização roda num useEffect
+  // (checando readyState) mais um listener nativo de backup.
+  const initScrub = () => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || canScrub.current) return;
     v.muted = true;
     v.defaultMuted = true;
+    // trava o vídeo e avança 1:1 com o scroll (seek). Sem play(): o frame
+    // não "deriva" sozinho quando o usuário para de rolar.
+    v.pause();
+    v.currentTime = 0;
     canScrub.current = true;
   };
 
-  const onLoadedData = () => setLoading(false);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || staticMode) return;
+    // os eventos podem ter disparado antes do React montar — inicia direto
+    if (v.readyState >= 1) initScrub();
+    setLoading(false);
+    v.addEventListener("loadedmetadata", initScrub);
+    v.addEventListener("loadeddata", () => setLoading(false));
+    return () => {
+      v.removeEventListener("loadedmetadata", initScrub);
+      v.removeEventListener("loadeddata", () => setLoading(false));
+    };
+  }, [staticMode]);
 
   return (
     <div ref={trackRef} className="relative h-[380svh] md:h-[500svh]">
@@ -167,8 +238,6 @@ export default function EgyptScrollFilm() {
             aria-hidden
             tabIndex={-1}
             className="absolute inset-0 z-0 h-full w-full object-cover"
-            onLoadedMetadata={onLoadedMetadata}
-            onLoadedData={onLoadedData}
             onError={() => setError(true)}
           />
         ) : (

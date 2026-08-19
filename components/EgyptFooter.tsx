@@ -6,7 +6,7 @@ export default function EgyptFooter() {
     <footer className="border-t border-egypt-white/10 bg-egypt-black px-5 py-14 sm:px-8">
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 sm:flex-row sm:items-end">
         <div className="flex flex-col gap-4">
-          <Logo variant="white" className="h-6" />
+          <Logo variant="white" className="h-6 self-start" />
           <p className="text-[0.6rem] font-medium uppercase tracking-[0.3em] text-egypt-silver">
             {siteData.footer.note}
           </p>

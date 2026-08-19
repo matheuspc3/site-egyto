@@ -137,8 +137,8 @@ export const siteData: SiteData = {
   },
 
   scrollFilm: {
-    video: "/videos/egypt-intro.mp4",
-    poster: "/videos/egypt-intro-poster.jpg",
+    video: "/videos/v2_egypt-intro.mp4",
+    poster: "/videos/eg_01.png",
     durationHint: "RE-VEJA: ROLE PARA CIMA",
     scenes: [
       {
@@ -165,7 +165,7 @@ export const siteData: SiteData = {
       },
       {
         id: "frame",
-        start: 0.38,
+        start: 0.08,
         end: 0.68,
         fade: 0.02,
         lines: ["FRAME", "001"],
@@ -266,10 +266,9 @@ export const siteData: SiteData = {
       "Do roteiro à finalização, acreditamos que imagem é linguagem — e que uma boa imagem fala por conta própria.",
     ],
     images: [
-      { src: "/brand/branding-1.png", alt: "Identidade visual da EGYPT" },
-      { src: "/brand/branding-2.png", alt: "Material de identidade da EGYPT" },
-      { src: "/brand/branding-3.jpg", alt: "Credencial de produção" },
-      { src: "/brand/branding-4.jpg", alt: "Cordão de credencial" },
+      { src: "/images/portfolio/01_estudio.png", alt: "Estúdio da EGYPT" },
+      { src: "/images/portfolio/02_estudio.png", alt: "Estúdio da EGYPT" },
+      { src: "/images/portfolio/03_estudio.png", alt: "Estúdio da EGYPT" },
     ],
   },
 

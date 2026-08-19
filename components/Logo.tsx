@@ -12,10 +12,9 @@ type LogoProps = {
 };
 
 /**
- * Logo oficial: PNG gerado do LOGO EGITO.pdf (branco/preto).
- * Único ponto de troca da identidade — fallback para wordmark Anton
- * caso o PNG não exista (converta o PDF e nomeie public/brand/logo-white.png
- * e logo-black.png).
+ * Logo oficial: LOGO_EGITO_HORIZONTAL.svg (vetorial).
+ * O SVG é preto — no modo "white" invertemos via filter para fundos escuros.
+ * Único ponto de troca da identidade — fallback para wordmark Anton.
  */
 export default function Logo({
   variant = "white",
@@ -23,7 +22,6 @@ export default function Logo({
   alt = "EGYPT PRODUÇÕES",
 }: LogoProps) {
   const [failed, setFailed] = useState(false);
-  const src = variant === "black" ? "/brand/logo-black.png" : "/brand/logo-white.png";
 
   if (failed) {
     return (
@@ -42,9 +40,9 @@ export default function Logo({
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
-      src={src}
+      src="/brand/logo-horizontal.svg"
       alt={alt}
-      className={cn("block h-8 w-auto", className)}
+      className={cn("block h-8 w-auto", variant === "white" && "invert", className)}
       onError={() => setFailed(true)}
     />
   );
