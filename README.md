@@ -1,4 +1,4 @@
-# EGYPT PRODUÇÕES — Site Institucional
+# EGYPT PRODUÇÕES
 
 Site institucional cinematográfico da **EGYPT PRODUÇÕES**. Next.js 15 (App Router) + React 19 + TypeScript + Tailwind CSS 4 + framer-motion.
 
@@ -60,6 +60,7 @@ Fallback: com `prefers-reduced-motion` ou erro de vídeo, a seção mostra as ce
 | `public/videos/egypt-intro.mp4` + `egypt-intro-poster.jpg` | legado | vídeo/poster antigos — não referenciados, podem ser removidos |
 | `public/videos/showreel.mp4` | opcional | showreel (modal; 404 tolerado enquanto não existir) |
 | `public/brand/logo-horizontal.svg` | usado | logo vetorial (preto; invertido via `filter` para fundos escuros) |
+| `app/icon.svg` | usado | favicon — emblema EGYPT branco sobre chip arredondado `#080808` (auto-servido por Next em `/icon.svg`) |
 | `public/brand/logo-white.png` | legado | conversão antiga do PDF — não referenciado |
 | `public/brand/branding-*.png/jpg` | legado | fotos antigas do "Sobre" — não referenciadas |
 | `public/images/portfolio/01_estudio.png`… | usado | imagens do carrossel do "Sobre" |
